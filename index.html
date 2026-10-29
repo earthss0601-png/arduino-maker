@@ -1,0 +1,1439 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>아두이노 메이커 프로젝트</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 상단 고정 탭 바 + 한 탭씩 보이는 작업 카드. 회로도는 고정된 밝은 '작업 매트' 위에 그린 그림으로 취급 */
+:root {
+  --bg: #eef2ec;
+  --surface: #ffffff;
+  --surface-2: #f6f8f4;
+  --ink: #16241d;
+  --muted: #56675e;
+  --line: #d6dfd4;
+  --accent: #0b7a55;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcefe5;
+  --solder: #c98a0c;
+  --solder-soft: #fbefd2;
+  --warn: #b4232c;
+  --warn-soft: #fbe3e4;
+  --code-bg: #10201a;
+  --code-ink: #dbe9e1;
+  --font-display: "Do Hyeon", "IBM Plex Sans KR", "Malgun Gothic", sans-serif;
+  --font-body: "IBM Plex Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "D2Coding", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1612; --surface: #16211c; --surface-2: #1b2822; --ink: #e4eee8; --muted: #9bb0a4;
+    --line: #2a3a33; --accent: #3cc493; --accent-ink: #062016; --accent-soft: #173a2d;
+    --solder: #f0b63c; --solder-soft: #3a2f14; --warn: #ff7b82; --warn-soft: #3d1b1e;
+    --code-bg: #0a120e; --code-ink: #d6e6dd; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1612; --surface: #16211c; --surface-2: #1b2822; --ink: #e4eee8; --muted: #9bb0a4;
+  --line: #2a3a33; --accent: #3cc493; --accent-ink: #062016; --accent-soft: #173a2d;
+  --solder: #f0b63c; --solder-soft: #3a2f14; --warn: #ff7b82; --warn-soft: #3d1b1e;
+  --code-bg: #0a120e; --code-ink: #d6e6dd; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.65;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+header.top .wrap { padding-block: 22px 6px; display: flex; flex-wrap: wrap; align-items: end; gap: 6px 18px; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 0; letter-spacing: -0.5px; }
+h1 .chip-mark { color: var(--accent); }
+header.top p { margin: 0 0 6px; color: var(--muted); font-size: 14px; }
+
+nav.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+nav.tabs .wrap { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin; padding-block: 8px; }
+.tab {
+  flex: 0 0 auto; border: 1px solid transparent; background: transparent; color: var(--muted);
+  font: 500 14px/1 var(--font-body); padding: 9px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+  display: inline-flex; gap: 6px; align-items: center;
+}
+.tab .num { font-family: var(--font-mono); font-size: 12px; color: var(--solder); }
+.tab:hover { background: var(--surface-2); color: var(--ink); }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.tab[aria-selected="true"] .num { color: var(--accent-ink); opacity: .75; }
+.tab:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--solder); outline-offset: 2px; }
+
+main .wrap { padding-block: 28px 64px; display: grid; gap: 28px; }
+section.block { display: grid; gap: 12px; min-width: 0; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 26px; line-height: 1.2; margin: 0; text-wrap: balance; }
+h3 { font-size: 17px; margin: 0; }
+.eyebrow { font: 600 12px/1 var(--font-mono); letter-spacing: 1.5px; text-transform: uppercase; color: var(--solder); }
+p { margin: 0; }
+.muted { color: var(--muted); }
+
+.hero { display: grid; gap: 10px; }
+.hero h2 { font-size: clamp(30px, 5vw, 44px); }
+.hero .pitch { font-size: 18px; max-width: 62ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 13px; background: var(--surface); border: 1px solid var(--line); }
+.pill b { font-weight: 700; }
+.pill.lv { background: var(--solder-soft); border-color: transparent; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; min-width: 0; display: grid; gap: 10px; align-content: start; }
+ul.parts, ol.steps, ul.ideas { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+ul.parts li::marker { color: var(--accent); }
+ol.steps li::marker { color: var(--solder); font-weight: 700; }
+
+.diagram-box { background: #eef2ec; border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+.diagram-box svg { display: block; width: 100%; min-width: 820px; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 6px; border-radius: 3px; display: inline-block; }
+
+.check-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.progress { font: 600 14px var(--font-mono); color: var(--accent); }
+.btn { font: 500 14px var(--font-body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; border-radius: 8px; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table.wires { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 520px; }
+table.wires th, table.wires td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+table.wires th { font-size: 12px; letter-spacing: 1px; color: var(--muted); font-weight: 600; background: var(--surface-2); }
+table.wires tr:last-child td { border-bottom: 0; }
+table.wires td.n { font-family: var(--font-mono); color: var(--muted); width: 2.5em; font-variant-numeric: tabular-nums; }
+table.wires tr.done td { color: var(--muted); }
+table.wires tr.done td.what { text-decoration: line-through; }
+table.wires input { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+.wirecell { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.wirecell .sw { width: 26px; height: 8px; }
+.to { font-weight: 700; }
+.res { display: inline-block; margin-left: 6px; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--solder-soft); color: var(--ink); white-space: nowrap; }
+
+.code-wrap { position: relative; border-radius: 12px; background: var(--code-bg); overflow: hidden; }
+.code-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.08); color: var(--code-ink); font: 13px var(--font-mono); }
+.code-bar .btn { background: transparent; color: var(--code-ink); border-color: rgba(255,255,255,.2); }
+.code-bar .btn.ok { border-color: #3cc493; color: #3cc493; }
+pre.code { margin: 0; padding: 16px 18px; overflow-x: auto; font: 13.5px/1.6 var(--font-mono); color: var(--code-ink); tab-size: 2; font-variant-ligatures: none; }
+.tk-c { color: #7f9a8c; font-style: italic; }
+.tk-s { color: #f2c46d; }
+.tk-p { color: #ff9b85; }
+.tk-n { color: #8fd3ff; }
+.tk-k { color: #6fe0b2; font-weight: 600; }
+.tk-f { color: #c9a8ff; }
+
+.callout { border-radius: 10px; padding: 12px 14px; background: var(--solder-soft); font-size: 15px; }
+.callout.warn { background: var(--warn-soft); }
+.callout b { font-weight: 700; }
+.libs { display: grid; gap: 6px; }
+.lib { font-size: 14px; }
+.lib code, p code, li code { font-family: var(--font-mono); font-size: .9em; background: var(--surface-2); border: 1px solid var(--line); padding: 0 5px; border-radius: 5px; }
+
+/* 안내 탭 */
+.timeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 460px) { .timeline { grid-template-columns: 1fr; } }
+.slot { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.slot .hour { font: 600 13px var(--font-mono); color: var(--solder); }
+.slot h3 { font-family: var(--font-display); font-weight: 400; font-size: 21px; }
+.slot p { font-size: 14px; color: var(--muted); }
+
+.mixer { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: grid; gap: 14px; }
+.mix-row { display: grid; gap: 8px; }
+.mix-row .lab { font-weight: 700; font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: 500 14px var(--font-body); cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.mix-out { border-top: 1px dashed var(--line); padding-top: 14px; display: grid; gap: 8px; }
+.mix-out .idea { font-family: var(--font-display); font-size: 24px; line-height: 1.3; }
+.mix-out .refs { display: flex; flex-wrap: wrap; gap: 6px; }
+.linkbtn { border: 0; background: var(--accent-soft); color: var(--ink); font: 500 14px var(--font-body); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+.linkbtn:hover { background: var(--accent); color: var(--accent-ink); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.card { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; cursor: pointer; display: grid; gap: 4px; color: var(--ink); font: inherit; }
+.card:hover { border-color: var(--accent); }
+.card .t { font-family: var(--font-display); font-size: 21px; line-height: 1.25; }
+.card .s { font-size: 13px; color: var(--muted); }
+.card .n { font: 600 12px var(--font-mono); color: var(--solder); }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+footer { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .tab, .chip, .card, .btn { transition: background .15s, border-color .15s, color .15s; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>아두이노 <span class="chip-mark">메이커</span> 프로젝트</h1>
+    <p>58종 키트로 만드는 나만의 발명품 · 예시를 보고 꽂고, 올리고, 내 아이디어로 바꿔 보세요</p>
+  </div>
+</header>
+<nav class="tabs" aria-label="프로젝트 탭">
+  <div class="wrap" role="tablist" id="tablist"></div>
+</nav>
+<main>
+  <div class="wrap" id="view"></div>
+</main>
+
+<script>
+/* ───────────── 프로젝트 데이터 ─────────────
+   pins: [핀 이름, 연결할 곳, 옵션]
+   연결할 곳: '+' 브레드보드 + 줄, '-' 브레드보드 − 줄, 'D2'~'D13', 'A0'~'A5', '5V', '3.3V', 'GND', null(연결 안 함)
+   옵션: { r: '220Ω' } 저항을 거쳐 연결 */
+const PROJECTS = [
+{
+  id: 'parking', title: '스마트 주차 경보기', level: 1, time: '40분',
+  pitch: '벽에 가까워질수록 “삐-삐-” 소리가 빨라지고, 초록 → 노랑 → 빨강 불이 켜지는 자동차 후방 센서예요.',
+  how: ['초음파 센서가 소리를 쏘고 돌아오는 시간으로 거리를 재요.', '30cm 이상이면 초록, 10~30cm면 노랑, 10cm보다 가까우면 빨강 LED를 켜요.', '가까울수록 부저 소리 사이 간격을 짧게 해요.'],
+  in: ['거리'], out: ['LED', '부저'], libs: [],
+  comps: [
+    { key: 'us', name: '초음파 센서', sub: 'HC-SR04', type: 'ultrasonic', pins: [['VCC', '+'], ['Trig', 'D9'], ['Echo', 'D8'], ['GND', '-']] },
+    { key: 'bz', name: '피에조 부저', sub: '', type: 'buzzer', pins: [['+ (긴 다리)', 'D5'], ['− (짧은 다리)', '-']] },
+    { key: 'led', name: 'LED 3개', sub: '초록·노랑·빨강', type: 'leds', colors: ['#2fbf5b', '#f5c400', '#e53935'], pins: [['초록 LED 긴 다리', 'D2', { r: '220Ω' }], ['노랑 LED 긴 다리', 'D3', { r: '220Ω' }], ['빨강 LED 긴 다리', 'D4', { r: '220Ω' }], ['짧은 다리 3개 모두', '-']] }
+  ],
+  code: `// 스마트 주차 경보기 : 가까워질수록 삐-삐- 소리가 빨라져요
+const int TRIG = 9;     // 초음파 Trig
+const int ECHO = 8;     // 초음파 Echo
+const int BUZZ = 5;     // 부저
+const int LED_G = 2;    // 초록 LED (안전)
+const int LED_Y = 3;    // 노랑 LED (주의)
+const int LED_R = 4;    // 빨강 LED (위험)
+
+void setup() {
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+  pinMode(BUZZ, OUTPUT);
+  pinMode(LED_G, OUTPUT);
+  pinMode(LED_Y, OUTPUT);
+  pinMode(LED_R, OUTPUT);
+  Serial.begin(9600);
+}
+
+// 거리(cm)를 재는 함수
+long readCM() {
+  digitalWrite(TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+  long t = pulseIn(ECHO, HIGH, 30000);  // 초음파가 돌아오는 데 걸린 시간
+  if (t == 0) return 999;               // 너무 멀면 999
+  return t * 0.034 / 2;
+}
+
+void loop() {
+  long d = readCM();
+  Serial.print("거리: ");
+  Serial.print(d);
+  Serial.println(" cm");
+
+  digitalWrite(LED_G, d >= 30);
+  digitalWrite(LED_Y, d >= 10 && d < 30);
+  digitalWrite(LED_R, d < 10);
+
+  if (d < 10) {            // 아주 가까움 : 계속 삐-
+    tone(BUZZ, 1000);
+    delay(100);
+  } else if (d < 30) {     // 가까움 : 거리만큼 쉬었다가 삐
+    tone(BUZZ, 1000, 80);
+    delay(d * 15);
+  } else {                 // 멀다 : 조용히
+    noTone(BUZZ);
+    delay(200);
+  }
+}`,
+  try: ['툴 → 시리얼 모니터(9600)를 열고 손을 앞뒤로 움직이며 거리 숫자를 확인해요.', '손을 천천히 가까이 가져가며 LED 색과 소리 간격이 바뀌는지 봐요.'],
+  ext: ['기준 거리(30, 10)를 바꿔 자전거용·로봇 청소기용 센서로 만들기', '서보모터를 더해 너무 가까우면 “차단기”가 내려오게 하기', 'LCD를 더해 거리 숫자를 화면에 보여 주기']
+},
+{
+  id: 'weather', title: '나만의 기상 스테이션', level: 2, time: '50분',
+  pitch: '교실의 온도·습도·밝기를 재서 LCD 화면에 보여 주는 미니 날씨 관측소예요.',
+  how: ['DHT11 센서로 온도(℃)와 습도(%)를 읽어요.', '조도 센서(CDS)로 밝기를 0~1023 숫자로 읽어요.', '2초마다 LCD 첫 줄에 온·습도, 둘째 줄에 밝기를 보여 줘요.'],
+  in: ['온습도', '빛'], out: ['LCD'],
+  libs: [['DHT sensor library', 'Adafruit 제작 · 설치할 때 함께 설치하라고 나오는 것도 모두 설치'], ['LiquidCrystal I2C', 'Frank de Brabander 제작']],
+  comps: [
+    { key: 'dht', name: '온습도 센서', sub: 'DHT11', type: 'dht', pins: [['VCC (+)', '+'], ['DATA (S)', 'D2'], ['GND (−)', '-']] },
+    { key: 'cds', name: '조도 센서 + 10kΩ 저항', sub: 'CDS', type: 'cds', pins: [['CDS 다리 ①', '+'], ['CDS 다리 ② + 저항 한쪽', 'A0'], ['10kΩ 저항 다른 쪽', '-']] },
+    { key: 'lcd', name: 'I2C LCD', sub: '16×2', type: 'lcd', text: ['T:24.5C H:40%', 'Light:612 SUN'], pins: [['GND', '-'], ['VCC', '+'], ['SDA', 'A4'], ['SCL', 'A5']] }
+  ],
+  note: '조도 센서가 3핀 모듈(VCC·GND·S 또는 AO)이라면 저항 없이 S(AO)→A0, VCC→+줄, GND→−줄로 연결해요.',
+  code: `// 나만의 기상 스테이션 : 온도, 습도, 밝기를 LCD에 표시해요
+#include <DHT.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+DHT dht(2, DHT11);                    // DHT11 센서는 2번 핀
+LiquidCrystal_I2C lcd(0x27, 16, 2);   // 글자가 안 나오면 0x27 → 0x3F 로 바꿔 보기
+const int LIGHT = A0;                 // 조도 센서
+
+void setup() {
+  dht.begin();
+  lcd.init();
+  lcd.backlight();
+  Serial.begin(9600);
+  lcd.print("Weather Station");
+  delay(1500);
+}
+
+void loop() {
+  float t = dht.readTemperature();    // 온도 (℃)
+  float h = dht.readHumidity();       // 습도 (%)
+  int light = analogRead(LIGHT);      // 밝기 0 ~ 1023
+
+  lcd.clear();
+  if (isnan(t) || isnan(h)) {         // 센서를 못 읽었을 때
+    lcd.print("Sensor Error!");
+    delay(2000);
+    return;
+  }
+
+  lcd.setCursor(0, 0);
+  lcd.print("T:");
+  lcd.print(t, 1);
+  lcd.print("C H:");
+  lcd.print(h, 0);
+  lcd.print("%");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Light:");
+  lcd.print(light);
+  if (light > 500) lcd.print(" SUN");   // 기준값 500은 바꿔도 돼요
+  else             lcd.print(" DARK");
+
+  Serial.print("온도 "); Serial.print(t);
+  Serial.print(" / 습도 "); Serial.print(h);
+  Serial.print(" / 밝기 "); Serial.println(light);
+  delay(2000);
+}`,
+  try: ['센서에 입김을 불어 습도가 올라가는지 확인해요.', '조도 센서를 손으로 가리면 Light 숫자가 줄어들어요.', 'LCD가 파랗기만 하고 글자가 안 보이면 LCD 뒤 파란 가변저항을 드라이버로 돌려요.'],
+  ext: ['너무 더우면(28℃ 이상) 부저가 울리는 “폭염 경보” 추가', '어두워지면 LED가 자동으로 켜지는 스마트 조명 추가', '하루 중 최고·최저 온도를 기억해서 보여 주기']
+},
+{
+  id: 'trashcan', title: '자동으로 열리는 쓰레기통', level: 1, time: '40분',
+  pitch: '손을 가까이 대면 뚜껑이 스르륵 열리고, 3초 뒤 저절로 닫히는 비접촉 쓰레기통이에요.',
+  how: ['초음파 센서로 손까지의 거리를 재요.', '15cm보다 가까우면 서보모터를 천천히 돌려 뚜껑을 열어요.', '3초 기다린 뒤 다시 닫아요.'],
+  in: ['거리'], out: ['서보모터'], libs: [['Servo', '아두이노에 기본으로 들어 있어 설치 필요 없음']],
+  comps: [
+    { key: 'us', name: '초음파 센서', sub: 'HC-SR04', type: 'ultrasonic', pins: [['VCC', '+'], ['Trig', 'D9'], ['Echo', 'D8'], ['GND', '-']] },
+    { key: 'sv', name: '서보모터', sub: 'SG90', type: 'servo', pins: [['갈색 선 (GND)', '-'], ['빨강 선 (VCC)', '+'], ['주황 선 (신호)', 'D6']] }
+  ],
+  note: '종이컵·우유팩·작은 상자로 쓰레기통을 만들고, 서보 날개에 나무젓가락을 붙여 뚜껑을 들어 올려요.',
+  code: `// 자동으로 열리는 쓰레기통
+#include <Servo.h>
+
+Servo lid;                     // 뚜껑 서보모터
+const int TRIG = 9;
+const int ECHO = 8;
+const int SERVO_PIN = 6;
+const int CLOSE_ANGLE = 0;     // 닫힌 각도
+const int OPEN_ANGLE = 100;    // 열린 각도 (뚜껑에 맞게 조절)
+const int OPEN_DIST = 15;      // 이 거리(cm)보다 가까우면 열기
+
+void setup() {
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+  lid.attach(SERVO_PIN);
+  lid.write(CLOSE_ANGLE);
+  Serial.begin(9600);
+}
+
+long readCM() {
+  digitalWrite(TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+  long t = pulseIn(ECHO, HIGH, 30000);
+  if (t == 0) return 999;
+  return t * 0.034 / 2;
+}
+
+// from 각도에서 to 각도까지 천천히 움직이기
+void moveSlow(int from, int to) {
+  int step = (to > from) ? 1 : -1;
+  for (int a = from; a != to; a += step) {
+    lid.write(a);
+    delay(8);                  // 숫자가 클수록 더 천천히
+  }
+  lid.write(to);
+}
+
+void loop() {
+  long d = readCM();
+  Serial.print("거리: ");
+  Serial.println(d);
+
+  if (d < OPEN_DIST) {
+    moveSlow(CLOSE_ANGLE, OPEN_ANGLE);   // 열기
+    delay(3000);                         // 3초 기다리기
+    moveSlow(OPEN_ANGLE, CLOSE_ANGLE);   // 닫기
+  }
+  delay(100);
+}`,
+  try: ['처음에는 서보에 아무것도 붙이지 말고 날개가 0°↔100°로 움직이는지 확인해요.', '뚜껑을 붙인 뒤 OPEN_ANGLE 값을 바꿔 알맞게 열리도록 맞춰요.'],
+  ext: ['뚜껑이 열릴 때 부저로 “띵동” 효과음 넣기', '열린 횟수를 세서 시리얼 모니터에 “오늘 n번 사용” 표시', '쓰레기가 꽉 차면(뚜껑 안쪽 센서 거리) 빨간 LED 켜기']
+},
+{
+  id: 'safe', title: '비밀번호 금고', level: 3, time: '60분',
+  pitch: '키패드로 비밀번호 4자리를 맞히면 서보모터 잠금장치가 열리는 금고예요. 틀리면 경고음!',
+  how: ['키패드로 누른 숫자를 차례로 모아요. (* = 지우기, # = 확인)', '#을 누르면 저장된 비밀번호와 비교해요.', '맞으면 초록 LED + 서보가 90° 돌아 열리고, 5초 뒤 다시 잠겨요. 틀리면 빨간 LED가 깜빡이며 경고음이 나요.'],
+  in: ['키패드'], out: ['서보모터', '부저', 'LED'],
+  libs: [['Keypad', 'Mark Stanley, Alexander Brevig 제작'], ['Servo', '기본 내장']],
+  comps: [
+    { key: 'kp', name: '4×4 키패드', sub: '왼쪽 핀부터 1~8', type: 'keypad', pins: [['1번 (R1)', 'D9'], ['2번 (R2)', 'D8'], ['3번 (R3)', 'D7'], ['4번 (R4)', 'D6'], ['5번 (C1)', 'D5'], ['6번 (C2)', 'D4'], ['7번 (C3)', 'D3'], ['8번 (C4)', 'D2']] },
+    { key: 'sv', name: '서보모터', sub: 'SG90', type: 'servo', pins: [['갈색 선 (GND)', '-'], ['빨강 선 (VCC)', '+'], ['주황 선 (신호)', 'D10']] },
+    { key: 'bz', name: '피에조 부저', sub: '', type: 'buzzer', pins: [['+ (긴 다리)', 'D11'], ['− (짧은 다리)', '-']] },
+    { key: 'led', name: 'LED 2개', sub: '빨강·초록', type: 'leds', colors: ['#e53935', '#2fbf5b'], pins: [['빨강 LED 긴 다리', 'D12', { r: '220Ω' }], ['초록 LED 긴 다리', 'D13', { r: '220Ω' }], ['짧은 다리 2개 모두', '-']] }
+  ],
+  note: '키패드 줄은 8개라 헷갈리기 쉬워요. 키패드를 앞에서 봤을 때 왼쪽 핀이 1번이에요.',
+  code: `// 비밀번호 금고 : * 지우기, # 확인
+#include <Keypad.h>
+#include <Servo.h>
+
+const byte ROWS = 4;
+const byte COLS = 4;
+char keys[ROWS][COLS] = {
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+};
+byte rowPins[ROWS] = {9, 8, 7, 6};   // 키패드 1~4번 핀
+byte colPins[COLS] = {5, 4, 3, 2};   // 키패드 5~8번 핀
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+Servo lock;
+const int SERVO_PIN = 10;
+const int BUZZ = 11;
+const int LED_R = 12;
+const int LED_G = 13;
+
+String password = "1234";   // ★ 나만의 비밀번호로 바꾸기
+String input = "";
+
+void setup() {
+  lock.attach(SERVO_PIN);
+  lock.write(0);                     // 0도 = 잠김
+  pinMode(BUZZ, OUTPUT);
+  pinMode(LED_R, OUTPUT);
+  pinMode(LED_G, OUTPUT);
+  digitalWrite(LED_R, HIGH);
+  Serial.begin(9600);
+  Serial.println("비밀번호를 누르고 #");
+}
+
+void openSafe() {
+  Serial.println("열렸습니다!");
+  digitalWrite(LED_R, LOW);
+  digitalWrite(LED_G, HIGH);
+  tone(BUZZ, 1047, 150); delay(180);  // 도
+  tone(BUZZ, 1319, 150); delay(180);  // 미
+  tone(BUZZ, 1568, 300);              // 솔
+  lock.write(90);                     // 90도 = 열림
+  delay(5000);
+  lock.write(0);                      // 다시 잠금
+  digitalWrite(LED_G, LOW);
+  digitalWrite(LED_R, HIGH);
+  Serial.println("다시 잠겼어요");
+}
+
+void wrong() {
+  Serial.println("틀렸어요!");
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(LED_R, LOW);
+    tone(BUZZ, 200, 200);
+    delay(250);
+    digitalWrite(LED_R, HIGH);
+    delay(250);
+  }
+}
+
+void loop() {
+  char k = keypad.getKey();
+  if (!k) return;                    // 아무것도 안 눌렀으면 끝
+
+  tone(BUZZ, 2000, 40);              // 누를 때마다 "딱"
+  if (k == '*') {
+    input = "";
+    Serial.println("[지움]");
+  } else if (k == '#') {
+    if (input == password) openSafe();
+    else wrong();
+    input = "";
+  } else {
+    input += k;
+    Serial.print("*");
+  }
+}`,
+  try: ['시리얼 모니터를 열고 키를 눌러 * 표시가 나오는지 확인해요.', '1234# → 열림, 다른 숫자# → 경고음.', '아무 반응이 없으면 키패드 8개 줄 순서를 다시 확인해요.'],
+  ext: ['3번 틀리면 10초 동안 입력 금지 + 사이렌', 'LCD를 더해 “PASSWORD: ****” 화면 만들기', 'A 버튼을 누르면 비밀번호를 새로 바꾸는 기능']
+},
+{
+  id: 'plant', title: '말하는 스마트 화분', level: 2, time: '50분',
+  pitch: '흙이 마르면 빨간 불과 “I’m thirsty :(” 메시지로 물을 달라고 말하는 화분이에요.',
+  how: ['토양 수분 센서로 흙 속 수분 값을 읽어요. (마를수록 숫자가 커요)', '값을 0~100% 로 바꿔서 LCD에 보여 줘요.', '30% 미만 빨강, 30~70% 초록, 70% 초과 파랑으로 RGB LED 색을 바꿔요.'],
+  in: ['흙 수분'], out: ['RGB LED', 'LCD'],
+  libs: [['LiquidCrystal I2C', 'Frank de Brabander 제작']],
+  comps: [
+    { key: 'soil', name: '토양 수분 센서', sub: '', type: 'soil', pins: [['VCC', '+'], ['GND', '-'], ['AO (아날로그 출력)', 'A0']] },
+    { key: 'rgb', name: 'RGB LED', sub: '공통 음극(−)', type: 'rgb', pins: [['R (빨강)', 'D9', { r: '220Ω' }], ['− (가장 긴 다리)', '-'], ['G (초록)', 'D10', { r: '220Ω' }], ['B (파랑)', 'D11', { r: '220Ω' }]] },
+    { key: 'lcd', name: 'I2C LCD', sub: '16×2', type: 'lcd', text: ['Moisture: 24%', "I'm thirsty :("], pins: [['GND', '-'], ['VCC', '+'], ['SDA', 'A4'], ['SCL', 'A5']] }
+  ],
+  note: 'RGB LED가 모듈(R·G·B·− 표시)이면 저항 없이 바로 꽂아도 돼요. 가장 긴 다리가 + 쪽(공통 양극)인 LED라면 긴 다리를 + 줄에 꽂고, 코드의 색 숫자를 255에서 빼서 써요.',
+  code: `// 말하는 스마트 화분
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);   // 안 나오면 0x3F
+const int SOIL = A0;
+const int R_PIN = 9;
+const int G_PIN = 10;
+const int B_PIN = 11;
+
+// ★ 내 센서 값으로 맞추기 : 시리얼 모니터의 raw 값을 보고 정해요
+const int DRY = 1000;   // 공기 중에 둔 (바짝 마른) 값
+const int WET = 350;    // 물컵에 담갔을 때 값
+
+void setColor(int r, int g, int b) {
+  analogWrite(R_PIN, r);
+  analogWrite(G_PIN, g);
+  analogWrite(B_PIN, b);
+}
+
+void setup() {
+  pinMode(R_PIN, OUTPUT);
+  pinMode(G_PIN, OUTPUT);
+  pinMode(B_PIN, OUTPUT);
+  lcd.init();
+  lcd.backlight();
+  Serial.begin(9600);
+}
+
+void loop() {
+  int raw = analogRead(SOIL);
+  int pct = map(raw, DRY, WET, 0, 100);   // 마름 0% ~ 촉촉 100%
+  pct = constrain(pct, 0, 100);
+
+  Serial.print("raw: ");
+  Serial.print(raw);
+  Serial.print("  수분: ");
+  Serial.print(pct);
+  Serial.println("%");
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Moisture: ");
+  lcd.print(pct);
+  lcd.print("%");
+  lcd.setCursor(0, 1);
+
+  if (pct < 30) {
+    setColor(255, 0, 0);       // 빨강 : 목말라요
+    lcd.print("I'm thirsty :(");
+  } else if (pct < 70) {
+    setColor(0, 255, 0);       // 초록 : 좋아요
+    lcd.print("I'm happy :)");
+  } else {
+    setColor(0, 0, 255);       // 파랑 : 물이 너무 많아요
+    lcd.print("Too much water!");
+  }
+  delay(1000);
+}`,
+  try: ['센서를 공기 중에 두고 raw 값 → DRY에, 물컵에 담근 raw 값 → WET에 적어요.', '센서를 젖은 휴지에 대 보며 색과 메시지가 바뀌는지 확인해요.'],
+  ext: ['흙이 마르면 부저로 “물 주세요” 멜로디 연주', '조도 센서를 더해 밤에는 LED를 끄는 “잠자는 화분”', '서보모터로 물뿌리개 깃발을 들어 올려 알리기']
+},
+{
+  id: 'piano', title: '버튼 미니 피아노', level: 1, time: '40분',
+  pitch: '버튼 4개로 도·레·미·파를 연주하고, 가변저항을 돌리면 옥타브가 올라가는 전자 피아노예요.',
+  how: ['버튼 4개가 눌렸는지 하나씩 확인해요. (눌리면 LOW)', '눌린 버튼에 맞는 음 높이(Hz)로 부저를 울려요.', '가변저항 값(0~1023)을 3단계로 나눠 1배·2배·4배 높이로 바꿔요.'],
+  in: ['버튼', '가변저항'], out: ['부저'], libs: [],
+  comps: [
+    { key: 'btn', name: '버튼 4개', sub: '택트 스위치', type: 'buttons', colors: ['#e53935', '#f5a300', '#f5d400', '#2fbf5b'], pins: [['도 버튼 한쪽 다리', 'D2'], ['레 버튼 한쪽 다리', 'D3'], ['미 버튼 한쪽 다리', 'D4'], ['파 버튼 한쪽 다리', 'D5'], ['대각선 반대쪽 다리 4개', '-']] },
+    { key: 'pot', name: '가변저항', sub: '10kΩ', type: 'pot', pins: [['왼쪽 다리', '-'], ['가운데 다리', 'A0'], ['오른쪽 다리', '+']] },
+    { key: 'bz', name: '피에조 부저', sub: '', type: 'buzzer', pins: [['+ (긴 다리)', 'D8'], ['− (짧은 다리)', '-']] }
+  ],
+  note: '버튼은 브레드보드 가운데 홈을 가로질러 꽂아요. INPUT_PULLUP을 쓰기 때문에 버튼에는 저항이 필요 없어요.',
+  code: `// 버튼 미니 피아노
+const int BTN[4]  = {2, 3, 4, 5};          // 버튼 핀
+const int NOTE[4] = {262, 294, 330, 349};  // 도 레 미 파 (Hz)
+const int BUZZ = 8;
+const int KNOB = A0;                       // 가변저항 (옥타브)
+
+void setup() {
+  for (int i = 0; i < 4; i++) {
+    pinMode(BTN[i], INPUT_PULLUP);         // 저항 없이 버튼 사용
+  }
+  pinMode(BUZZ, OUTPUT);
+}
+
+void loop() {
+  int octave = analogRead(KNOB) / 342;     // 0, 1, 2 단계
+  int mult = 1 << octave;                  // 1배, 2배, 4배
+  bool pressed = false;
+
+  for (int i = 0; i < 4; i++) {
+    if (digitalRead(BTN[i]) == LOW) {      // 눌리면 LOW
+      tone(BUZZ, NOTE[i] * mult);
+      pressed = true;
+      break;
+    }
+  }
+  if (!pressed) noTone(BUZZ);              // 아무것도 안 누르면 조용히
+  delay(10);
+}`,
+  try: ['버튼을 하나씩 눌러 도·레·미·파 소리가 나는지 확인해요.', '가변저항을 끝까지 돌려 가며 소리가 높아지는지 들어 봐요.', '“학교종이 땡땡땡”(솔솔라라 솔솔미)을 쳐 보려면 어떤 음이 더 필요할까요?'],
+  ext: ['NOTE 배열 숫자를 바꿔 솔·라·시·도로 바꾸기 (392, 440, 494, 523)', '버튼을 더 꽂아 한 옥타브 전체 만들기 (D6, D7 사용)', '버튼마다 LED를 달아 누를 때 불이 켜지는 “빛나는 피아노”']
+},
+{
+  id: 'alarm', title: '침입자 경보 시스템', level: 2, time: '50분',
+  pitch: '경비 모드를 켜 두면 사람이 움직일 때 사이렌과 빨간 불이 번쩍이는 방범 장치예요.',
+  how: ['버튼을 누르면 경비 모드가 켜져요. 5초 동안 “삐” 소리를 내며 자리를 떠날 시간을 줘요.', 'PIR 센서가 사람의 움직임(체온의 변화)을 감지하면 사이렌을 울려요.', '버튼을 다시 누르면 경비가 꺼지고 사이렌이 멈춰요.'],
+  in: ['움직임', '버튼'], out: ['부저', 'LED'], libs: [],
+  comps: [
+    { key: 'pir', name: '인체 감지 센서', sub: 'PIR', type: 'pir', pins: [['VCC', '+'], ['OUT', 'D2'], ['GND', '-']] },
+    { key: 'btn', name: '버튼', sub: '경비 켜기/끄기', type: 'buttons', colors: ['#2d6cdf'], pins: [['한쪽 다리', 'D4'], ['대각선 반대쪽 다리', '-']] },
+    { key: 'bz', name: '피에조 부저', sub: '', type: 'buzzer', pins: [['+ (긴 다리)', 'D8'], ['− (짧은 다리)', '-']] },
+    { key: 'led', name: '빨강 LED', sub: '', type: 'leds', colors: ['#e53935'], pins: [['긴 다리 (+)', 'D13', { r: '220Ω' }], ['짧은 다리 (−)', '-']] }
+  ],
+  note: 'PIR 센서는 전원을 넣고 약 30초~1분 동안 준비 시간이 필요해요. 뒷면 주황 나사 2개로 감도와 유지 시간을 조절할 수 있어요.',
+  code: `// 침입자 경보 시스템
+const int PIR  = 2;    // 인체 감지 센서
+const int BTN  = 4;    // 경비 켜기/끄기 버튼
+const int BUZZ = 8;    // 부저
+const int LED  = 13;   // 빨강 LED
+
+bool armed = false;    // 경비 모드인지
+bool alarm = false;    // 사이렌이 울리는 중인지
+
+void setup() {
+  pinMode(PIR, INPUT);
+  pinMode(BTN, INPUT_PULLUP);
+  pinMode(BUZZ, OUTPUT);
+  pinMode(LED, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("버튼을 누르면 경비 시작!");
+}
+
+void loop() {
+  // 1) 버튼을 누르면 경비 켜기 / 끄기
+  if (digitalRead(BTN) == LOW) {
+    while (digitalRead(BTN) == LOW);   // 손을 뗄 때까지 기다리기
+    armed = !armed;
+    alarm = false;
+    noTone(BUZZ);
+    digitalWrite(LED, LOW);
+
+    if (armed) {
+      Serial.println("경비 시작! 5초 안에 자리를 떠나세요");
+      for (int i = 0; i < 5; i++) {
+        tone(BUZZ, 1500, 100);
+        delay(1000);
+      }
+      Serial.println("경비 중...");
+    } else {
+      Serial.println("경비 해제");
+      tone(BUZZ, 800, 300);
+    }
+    delay(50);
+  }
+
+  // 2) 경비 중에 움직임이 감지되면 경보 시작
+  if (armed && !alarm && digitalRead(PIR) == HIGH) {
+    alarm = true;
+    Serial.println("침입자 발견!!");
+  }
+
+  // 3) 사이렌 : 소리가 올라가면서 LED 깜빡
+  if (alarm) {
+    for (int f = 600; f < 1400; f += 20) {
+      tone(BUZZ, f);
+      digitalWrite(LED, (f / 100) % 2);
+      delay(5);
+    }
+  }
+}`,
+  try: ['업로드 후 1분 정도 기다렸다가 버튼을 눌러요.', '“삐” 5번이 끝난 뒤 센서 앞에서 손을 흔들면 사이렌이 울려요.', '버튼을 한 번 더 누르면 멈춰요.'],
+  ext: ['키패드를 더해 비밀번호를 눌러야 경보가 꺼지게 하기', 'LCD에 “침입 횟수”를 기록해서 보여 주기', '서보모터로 문이 자동으로 잠기는 장면 연출']
+},
+{
+  id: 'moodlight', title: '리모컨 무드등', level: 2, time: '50분',
+  pitch: '적외선 리모컨 버튼으로 색을 바꾸고, 밝기를 조절하고, 무지개 모드도 켜는 무드등이에요.',
+  how: ['적외선 수신 센서가 리모컨 신호를 받아 버튼 코드(숫자)로 바꿔요.', '버튼 코드에 따라 RGB LED의 빨강·초록·파랑 세기를 정해요.', 'OK 버튼을 누르면 색이 계속 변하는 무지개 모드가 돼요.'],
+  in: ['리모컨'], out: ['RGB LED'],
+  libs: [['IRremote', 'shirriff, z3t0, ArminJo 제작 · 4.x 버전']],
+  comps: [
+    { key: 'ir', name: '적외선 수신 센서', sub: '+ 리모컨', type: 'ir', pins: [['OUT (S)', 'D2'], ['VCC (+)', '+'], ['GND (−)', '-']] },
+    { key: 'rgb', name: 'RGB LED', sub: '공통 음극(−)', type: 'rgb', pins: [['R (빨강)', 'D9', { r: '220Ω' }], ['− (가장 긴 다리)', '-'], ['G (초록)', 'D6', { r: '220Ω' }], ['B (파랑)', 'D5', { r: '220Ω' }]] }
+  ],
+  note: '리모컨마다 버튼 코드가 달라요! 먼저 업로드하고 시리얼 모니터에서 각 버튼의 코드(예: 0x45)를 확인한 뒤, 코드 윗부분 #define 값을 우리 리모컨 값으로 바꿔요.',
+  code: `// 리모컨 무드등
+#include <IRremote.hpp>
+
+const int IR_PIN = 2;
+const int R_PIN = 9;
+const int G_PIN = 6;
+const int B_PIN = 5;
+
+// ★ 우리 리모컨 버튼 코드로 바꾸세요 (시리얼 모니터에 나오는 값)
+#define KEY_1     0x45
+#define KEY_2     0x46
+#define KEY_3     0x47
+#define KEY_4     0x44
+#define KEY_5     0x40
+#define KEY_0     0x19
+#define KEY_UP    0x18
+#define KEY_DOWN  0x52
+#define KEY_OK    0x1C
+
+int r = 0, g = 0, b = 0;    // 현재 색
+int bright = 255;           // 밝기 5 ~ 255
+bool rainbow = false;       // 무지개 모드
+int hue = 0;
+unsigned long lastStep = 0;
+
+void show() {
+  analogWrite(R_PIN, (long)r * bright / 255);
+  analogWrite(G_PIN, (long)g * bright / 255);
+  analogWrite(B_PIN, (long)b * bright / 255);
+}
+
+void setColor(int nr, int ng, int nb) {
+  r = nr; g = ng; b = nb;
+  rainbow = false;
+  show();
+}
+
+// 0 ~ 255 숫자를 무지개 색으로 바꾸기
+void wheel(int pos) {
+  if (pos < 85)       { r = 255 - pos * 3; g = pos * 3;       b = 0; }
+  else if (pos < 170) { pos -= 85;  r = 0; g = 255 - pos * 3; b = pos * 3; }
+  else                { pos -= 170; r = pos * 3; g = 0;       b = 255 - pos * 3; }
+}
+
+void setup() {
+  pinMode(R_PIN, OUTPUT);
+  pinMode(G_PIN, OUTPUT);
+  pinMode(B_PIN, OUTPUT);
+  Serial.begin(9600);
+  IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK);
+  Serial.println("리모컨 버튼을 눌러 보세요");
+}
+
+void loop() {
+  if (IrReceiver.decode()) {
+    uint8_t key = IrReceiver.decodedIRData.command;
+    bool isRepeat = IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT;
+    IrReceiver.resume();
+
+    if (!isRepeat) {                  // 꾹 누를 때 반복 신호는 무시
+      Serial.print("버튼 코드: 0x");
+      Serial.println(key, HEX);
+
+      switch (key) {
+        case KEY_1:    setColor(255, 0, 0);   break;  // 빨강
+        case KEY_2:    setColor(0, 255, 0);   break;  // 초록
+        case KEY_3:    setColor(0, 0, 255);   break;  // 파랑
+        case KEY_4:    setColor(255, 160, 0); break;  // 노랑
+        case KEY_5:    setColor(160, 0, 255); break;  // 보라
+        case KEY_0:    setColor(0, 0, 0);     break;  // 끄기
+        case KEY_UP:   bright = min(bright + 50, 255); show(); break;
+        case KEY_DOWN: bright = max(bright - 50, 5);   show(); break;
+        case KEY_OK:   rainbow = !rainbow; break;     // 무지개 켜기/끄기
+      }
+    }
+  }
+
+  if (rainbow && millis() - lastStep > 20) {   // 0.02초마다 색 조금씩 바꾸기
+    lastStep = millis();
+    hue = (hue + 1) % 256;
+    wheel(hue);
+    show();
+  }
+}`,
+  try: ['시리얼 모니터(9600)를 열고 리모컨 버튼을 하나씩 눌러 코드를 적어요.', '#define 값을 바꾸고 다시 업로드해요.', '1~5, 0, 위/아래, OK 버튼을 눌러 확인해요.'],
+  ext: ['버튼을 누를 때마다 부저로 “띵” 소리 내기 (부저는 D3, D11 말고 D8에)', '조도 센서를 더해 어두워지면 저절로 켜지는 수면등', '숫자 버튼마다 나만의 색 조합 정하기']
+},
+{
+  id: 'turret', title: '조이스틱 레이저 포탑', level: 2, time: '50분',
+  pitch: '조이스틱을 기울이면 서보 포탑이 좌우로 돌고, 버튼을 누르면 “피융!” 발사 효과가 나는 게임 장치예요.',
+  how: ['조이스틱 X축 값(0~1023)을 읽어요. 가운데는 약 512예요.', '왼쪽으로 기울이면 각도를 늘리고, 오른쪽이면 줄여서 서보를 천천히 돌려요.', '조이스틱을 꾹 누르면 LED가 켜지고 높은 음에서 낮은 음으로 떨어지는 발사음이 나요.'],
+  in: ['조이스틱'], out: ['서보모터', 'LED', '부저'], libs: [['Servo', '기본 내장']],
+  comps: [
+    { key: 'joy', name: '조이스틱 모듈', sub: '', type: 'joystick', pins: [['GND', '-'], ['+5V', '+'], ['VRx', 'A0'], ['VRy', null], ['SW', 'D2']] },
+    { key: 'sv', name: '서보모터', sub: 'SG90', type: 'servo', pins: [['갈색 선 (GND)', '-'], ['빨강 선 (VCC)', '+'], ['주황 선 (신호)', 'D9']] },
+    { key: 'led', name: 'LED', sub: '발사 표시', type: 'leds', colors: ['#e53935'], pins: [['긴 다리 (+)', 'D7', { r: '220Ω' }], ['짧은 다리 (−)', '-']] },
+    { key: 'bz', name: '피에조 부저', sub: '', type: 'buzzer', pins: [['+ (긴 다리)', 'D8'], ['− (짧은 다리)', '-']] }
+  ],
+  note: 'VRy는 지금은 쓰지 않아요. 서보를 하나 더 달아 위아래로 움직이게 만들고 싶다면 VRy → A1에 연결해요.',
+  code: `// 조이스틱 레이저 포탑
+#include <Servo.h>
+
+Servo turret;
+const int JOY_X = A0;      // 조이스틱 좌우
+const int JOY_SW = 2;      // 조이스틱 누르기
+const int SERVO_PIN = 9;
+const int LED = 7;
+const int BUZZ = 8;
+int angle = 90;            // 처음 각도 (가운데)
+
+void setup() {
+  turret.attach(SERVO_PIN);
+  turret.write(angle);
+  pinMode(JOY_SW, INPUT_PULLUP);
+  pinMode(LED, OUTPUT);
+  pinMode(BUZZ, OUTPUT);
+  Serial.begin(9600);
+}
+
+void fire() {
+  Serial.println("발사!");
+  digitalWrite(LED, HIGH);
+  for (int f = 2000; f > 300; f -= 40) {   // 높은 음 → 낮은 음 "피융"
+    tone(BUZZ, f);
+    delay(4);
+  }
+  noTone(BUZZ);
+  digitalWrite(LED, LOW);
+}
+
+void loop() {
+  int x = analogRead(JOY_X);    // 0 ~ 1023, 가운데 약 512
+
+  if (x < 400) angle += 2;      // 왼쪽으로 기울이면
+  if (x > 624) angle -= 2;      // 오른쪽으로 기울이면
+  angle = constrain(angle, 0, 180);
+  turret.write(angle);
+
+  if (digitalRead(JOY_SW) == LOW) {        // 버튼 누르면 발사
+    fire();
+    while (digitalRead(JOY_SW) == LOW);    // 손 뗄 때까지 기다리기
+  }
+  delay(15);                    // 숫자를 줄이면 더 빨리 돌아요
+}`,
+  try: ['조이스틱을 좌우로 기울여 서보가 따라 도는지 확인해요.', '방향이 반대로 움직이면 += 와 -= 를 서로 바꿔요.', '조이스틱을 위에서 꾹 눌러 발사음을 확인해요.'],
+  ext: ['서보 1개를 더 달아 VRy로 위아래까지 조종 (A1, D10 사용)', '종이 과녁에 초음파 센서를 두고 “명중” 판정 게임 만들기', '발사 횟수를 세서 10발이 넘으면 “재장전” 소리 내기']
+},
+{
+  id: 'reaction', title: '반응 속도 측정 게임', level: 2, time: '50분',
+  pitch: 'LED가 켜지는 순간 버튼을 눌러 내 반응 속도를 1/1000초 단위로 재는 게임이에요. 최고 기록도 남아요!',
+  how: ['버튼을 누르면 게임이 시작되고 2~5초 사이 아무 때나 LED가 켜져요.', 'LED가 켜진 순간부터 버튼을 누를 때까지 시간을 millis()로 재요.', 'LED가 켜지기 전에 누르면 “Too early!” 반칙 처리를 해요.'],
+  in: ['버튼'], out: ['LED', '부저', 'LCD'],
+  libs: [['LiquidCrystal I2C', 'Frank de Brabander 제작']],
+  comps: [
+    { key: 'btn', name: '버튼', sub: '큰 버튼 추천', type: 'buttons', colors: ['#e53935'], pins: [['한쪽 다리', 'D2'], ['대각선 반대쪽 다리', '-']] },
+    { key: 'led', name: 'LED', sub: '신호등', type: 'leds', colors: ['#2fbf5b'], pins: [['긴 다리 (+)', 'D7', { r: '220Ω' }], ['짧은 다리 (−)', '-']] },
+    { key: 'bz', name: '피에조 부저', sub: '', type: 'buzzer', pins: [['+ (긴 다리)', 'D8'], ['− (짧은 다리)', '-']] },
+    { key: 'lcd', name: 'I2C LCD', sub: '16×2', type: 'lcd', text: ['Time: 231 ms', 'Best: 198 ms'], pins: [['GND', '-'], ['VCC', '+'], ['SDA', 'A4'], ['SCL', 'A5']] }
+  ],
+  code: `// 반응 속도 측정 게임
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);   // 안 나오면 0x3F
+const int BTN = 2;
+const int LED = 7;
+const int BUZZ = 8;
+unsigned long best = 99999;           // 최고 기록 (ms)
+
+void showMsg(const char* line1, const char* line2) {
+  lcd.clear();
+  lcd.print(line1);
+  lcd.setCursor(0, 1);
+  lcd.print(line2);
+}
+
+// 버튼을 눌렀다가 뗄 때까지 기다리기
+void waitPress() {
+  while (digitalRead(BTN) == HIGH);
+  delay(30);
+  while (digitalRead(BTN) == LOW);
+  delay(30);
+}
+
+void setup() {
+  pinMode(BTN, INPUT_PULLUP);
+  pinMode(LED, OUTPUT);
+  pinMode(BUZZ, OUTPUT);
+  lcd.init();
+  lcd.backlight();
+  randomSeed(analogRead(A3));         // 매번 다른 랜덤값
+  showMsg("Reaction Game", "Press to START");
+}
+
+void loop() {
+  waitPress();                        // 시작 버튼
+  showMsg("Get ready...", "Wait for LED!");
+
+  unsigned long waitTime = random(2000, 5000);   // 2~5초 랜덤
+  unsigned long t0 = millis();
+  while (millis() - t0 < waitTime) {
+    if (digitalRead(BTN) == LOW) {    // 너무 일찍 누름 = 반칙
+      showMsg("Too early! :(", "Press to retry");
+      tone(BUZZ, 200, 500);
+      while (digitalRead(BTN) == LOW);
+      delay(30);
+      return;
+    }
+  }
+
+  digitalWrite(LED, HIGH);            // 지금이야!
+  tone(BUZZ, 1500, 100);
+  unsigned long start = millis();
+  while (digitalRead(BTN) == HIGH);   // 누를 때까지 기다림
+  unsigned long rt = millis() - start;
+  digitalWrite(LED, LOW);
+
+  if (rt < best) best = rt;           // 최고 기록 갱신
+
+  lcd.clear();
+  lcd.print("Time: ");
+  lcd.print(rt);
+  lcd.print(" ms");
+  lcd.setCursor(0, 1);
+  lcd.print("Best: ");
+  lcd.print(best);
+  lcd.print(" ms");
+
+  while (digitalRead(BTN) == LOW);    // 손 뗄 때까지
+  delay(1000);
+}`,
+  try: ['LCD에 “Reaction Game”이 나오면 버튼을 눌러 시작해요.', 'LED가 켜지면 최대한 빨리 버튼!', '친구들과 최고 기록 대결을 해 봐요. 보통 200~300ms가 나와요.'],
+  ext: ['버튼 2개로 1:1 대결 모드 만들기 (먼저 누른 사람 승리)', '최고 기록을 깨면 축하 멜로디 연주', 'LED 대신 RGB LED로 “초록일 때만 누르기, 빨강이면 참기” 규칙 추가']
+}
+];
+
+/* ───────────── 회로도 그리기 ───────────── */
+const TOP_PINS = ['SCL', 'SDA', 'AREF', 'GND_T', 'D13', 'D12', 'D11', 'D10', 'D9', 'D8', 'D7', 'D6', 'D5', 'D4', 'D3', 'D2', 'D1', 'D0'];
+const TOP_LABEL = ['SCL', 'SDA', 'AREF', 'GND', '13', '12', '~11', '~10', '~9', '8', '7', '~6', '~5', '4', '~3', '2', 'TX 1', 'RX 0'];
+const BOT_PINS = ['NC', 'IOREF', 'RESET', '3.3V', '5V', 'GND', 'GND2', 'VIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
+const BOT_LABEL = ['', 'IOREF', 'RESET', '3.3V', '5V', 'GND', 'GND', 'VIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
+const BX = 40, BW = 450, BH = 300;
+const CX = 704, CW = 300;
+const RAILP = 616, RAILN = 628;
+const PALETTE = [['#f2b705', '노랑'], ['#26a65b', '초록'], ['#1f6fe0', '파랑'], ['#f07818', '주황'], ['#8e44ad', '보라'], ['#14a3a8', '청록'], ['#d6336c', '분홍'], ['#8a5a2b', '갈색'], ['#6b7b88', '회색']];
+const RED = ['#d93636', '빨강'], BLACK = ['#2a2a2a', '검정'];
+
+function pinPos(name, by) {
+  if (name === 'GND') name = 'GND';
+  let i = TOP_PINS.indexOf(name);
+  if (i >= 0) return { x: BX + (i < 10 ? 120 + i * 16 : 290 + (i - 10) * 16), y: by + 16, side: 'top' };
+  i = BOT_PINS.indexOf(name);
+  if (i >= 0) return { x: BX + (i < 8 ? 140 + i * 16 : 284 + (i - 8) * 16), y: by + BH - 16, side: 'bottom' };
+  return null;
+}
+
+function targetText(t) {
+  if (t === '+') return '브레드보드 + 줄';
+  if (t === '-') return '브레드보드 − 줄';
+  if (/^D\d+$/.test(t)) return '디지털 ' + t.slice(1) + '번';
+  if (/^A\d$/.test(t)) return '아날로그 ' + t;
+  return t;
+}
+function shortTarget(t) { return t === '+' ? '+줄' : t === '-' ? '−줄' : /^D\d+$/.test(t) ? t.slice(1) + '번' : t; }
+
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+function buildWiring(p) {
+  // 부품 위치
+  let cy = 16;
+  const comps = p.comps.map(c => {
+    const h = Math.max(100, 44 + c.pins.length * 26);
+    const o = { ...c, y: cy, h, pinY: c.pins.map((_, i) => cy + 42 + i * 26) };
+    cy += h + 18;
+    return o;
+  });
+  const compBottom = cy;
+
+  // 선 목록
+  let pi = 0;
+  const wires = [];
+  comps.forEach(c => c.pins.forEach((pin, i) => {
+    const [label, to, opt] = pin;
+    if (!to) return;
+    let col;
+    if (to === '+' || to === '5V' || to === '3.3V') col = RED;
+    else if (to === '-' || to === 'GND') col = BLACK;
+    else col = PALETTE[pi++ % PALETTE.length];
+    wires.push({ comp: c, label, to, r: opt && opt.r, color: col, endY: c.pinY[i] });
+  }));
+  const usesRail = wires.some(w => w.to === '+' || w.to === '-');
+  return { comps, wires, usesRail, compBottom };
+}
+
+function resistorSVG(mx, my, value) {
+  // 브레드보드 전원줄과 부품 사이에 저항 그리기
+  const vert = false;
+  const bands = value === '10kΩ' ? ['#7a4a1d', '#111', '#f07818'] : ['#d32f2f', '#d32f2f', '#7a4a1d'];
+  const rot = vert ? 90 : 0;
+  return `<g transform="translate(${mx} ${my}) rotate(${rot})">
+    <rect x="-17" y="-7" width="34" height="14" rx="6" fill="#e8d2a2" stroke="#9c8156" stroke-width="1"/>
+    <rect x="-10" y="-7" width="3" height="14" fill="${bands[0]}"/><rect x="-4" y="-7" width="3" height="14" fill="${bands[1]}"/><rect x="2" y="-7" width="3" height="14" fill="${bands[2]}"/><rect x="10" y="-7" width="2" height="14" fill="#c9a227"/>
+  </g>
+  <text x="${vert ? mx + 12 : mx}" y="${vert ? my + 4 : my - 11}" font-size="11" font-weight="700" fill="#5a4521" text-anchor="${vert ? 'start' : 'middle'}" paint-order="stroke" stroke="#eef2ec" stroke-width="3">${value}</text>`;
+}
+
+function iconSVG(c, x, y) {
+  const t = c.type;
+  if (t === 'ultrasonic') return `<rect x="${x - 50}" y="${y - 24}" width="100" height="48" rx="4" fill="#2f6fb5"/>
+    ${[-25, 25].map(d => `<circle cx="${x + d}" cy="${y}" r="17" fill="#d4dadf" stroke="#8a949c" stroke-width="2"/><circle cx="${x + d}" cy="${y}" r="10" fill="#4d565e"/>`).join('')}`;
+  if (t === 'leds' || t === 'rgb') {
+    const cols = t === 'rgb' ? ['url(#rgbgrad)'] : c.colors;
+    const gap = 30, start = x - (cols.length - 1) * gap / 2;
+    return cols.map((col, i) => {
+      const lx = start + i * gap;
+      const legs = t === 'rgb' ? [-6, -2, 2, 6].map((d, k) => `<line x1="${lx + d}" y1="${y + 12}" x2="${lx + d}" y2="${y + (k === 1 ? 34 : 28)}" stroke="#9aa3a8" stroke-width="2"/>`).join('')
+        : `<line x1="${lx - 4}" y1="${y + 12}" x2="${lx - 4}" y2="${y + 34}" stroke="#9aa3a8" stroke-width="2"/><line x1="${lx + 4}" y1="${y + 12}" x2="${lx + 4}" y2="${y + 28}" stroke="#9aa3a8" stroke-width="2"/>`;
+      return `${legs}<path d="M${lx - 10} ${y + 12} v-14 a10 10 0 0 1 20 0 v14 z" fill="${col}" stroke="rgba(0,0,0,.25)"/><rect x="${lx - 12}" y="${y + 9}" width="24" height="4" rx="1" fill="${col}" opacity=".85"/>
+        <path d="M${lx - 5} ${y - 6} a5 5 0 0 1 5 -5" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/>`;
+    }).join('');
+  }
+  if (t === 'buzzer') return `<circle cx="${x}" cy="${y}" r="24" fill="#1f1f1f"/><circle cx="${x}" cy="${y}" r="5" fill="#555"/><text x="${x - 13}" y="${y - 9}" font-size="12" fill="#fff" font-weight="700">+</text>`;
+  if (t === 'servo') return `<rect x="${x - 40}" y="${y - 16}" width="80" height="34" rx="3" fill="#2a5db0"/><rect x="${x - 50}" y="${y - 8}" width="100" height="6" rx="2" fill="#2a5db0"/>
+    <circle cx="${x - 18}" cy="${y - 16}" r="10" fill="#e9eef3"/><rect x="${x - 22}" y="${y - 34}" width="8" height="34" rx="4" fill="#f5f7f9" stroke="#b9c2ca"/><circle cx="${x - 18}" cy="${y - 16}" r="3" fill="#888"/>
+    <text x="${x + 12}" y="${y + 6}" font-size="10" fill="#fff" text-anchor="middle">SG90</text>`;
+  if (t === 'lcd') {
+    const tx = c.text || ['HELLO', ''];
+    return `<rect x="${x - 56}" y="${y - 28}" width="112" height="56" rx="4" fill="#1f7a3b"/><rect x="${x - 50}" y="${y - 20}" width="100" height="40" rx="2" fill="#2f6be0"/>
+      <text x="${x - 46}" y="${y - 4}" font-family="monospace" font-size="9.5" fill="#fff">${esc(tx[0])}</text><text x="${x - 46}" y="${y + 12}" font-family="monospace" font-size="9.5" fill="#fff">${esc(tx[1])}</text>`;
+  }
+  if (t === 'dht') return `<rect x="${x - 20}" y="${y - 28}" width="40" height="52" rx="4" fill="#3d8fe0"/>
+    ${[0, 1, 2, 3, 4].map(r => [0, 1, 2].map(k => `<rect x="${x - 13 + k * 9}" y="${y - 22 + r * 9}" width="6" height="5" rx="1" fill="#1d5fa3"/>`).join('')).join('')}`;
+  if (t === 'cds') return `<circle cx="${x - 16}" cy="${y - 6}" r="15" fill="#f1e4c3" stroke="#b39a68" stroke-width="2"/>
+    <path d="M${x - 26} ${y - 10} h6 v8 h6 v-8 h6 v8 h6" stroke="#a6452b" stroke-width="2" fill="none"/>
+    <line x1="${x - 20}" y1="${y + 9}" x2="${x - 20}" y2="${y + 28}" stroke="#9aa3a8" stroke-width="2"/><line x1="${x - 12}" y1="${y + 9}" x2="${x - 12}" y2="${y + 28}" stroke="#9aa3a8" stroke-width="2"/>
+    <g transform="translate(${x + 26} ${y + 4}) rotate(90)"><rect x="-15" y="-6" width="30" height="12" rx="5" fill="#e8d2a2" stroke="#9c8156"/><rect x="-8" y="-6" width="3" height="12" fill="#7a4a1d"/><rect x="-2" y="-6" width="3" height="12" fill="#111"/><rect x="4" y="-6" width="3" height="12" fill="#f07818"/></g>
+    <text x="${x + 26}" y="${y - 18}" font-size="10" fill="#5a4521" text-anchor="middle">10kΩ</text>`;
+  if (t === 'pot') return `<rect x="${x - 24}" y="${y - 14}" width="48" height="32" rx="3" fill="#2c64c8"/><circle cx="${x}" cy="${y}" r="13" fill="#e3e7ea" stroke="#9aa3a8"/><line x1="${x}" y1="${y}" x2="${x + 7}" y2="${y - 9}" stroke="#333" stroke-width="3" stroke-linecap="round"/>`;
+  if (t === 'buttons') {
+    const cols = c.colors, gap = 28, start = x - (cols.length - 1) * gap / 2;
+    return cols.map((col, i) => `<rect x="${start + i * gap - 12}" y="${y - 12}" width="24" height="24" rx="3" fill="#2b2b2b"/><circle cx="${start + i * gap}" cy="${y}" r="8" fill="${col}"/>`).join('');
+  }
+  if (t === 'keypad') {
+    const keys = ['1', '2', '3', 'A', '4', '5', '6', 'B', '7', '8', '9', 'C', '*', '0', '#', 'D'];
+    return `<rect x="${x - 44}" y="${y - 54}" width="88" height="98" rx="5" fill="#1e1e1e"/>` + keys.map((k, i) => {
+      const kx = x - 38 + (i % 4) * 20, ky = y - 48 + Math.floor(i / 4) * 20;
+      return `<rect x="${kx}" y="${ky}" width="16" height="16" rx="3" fill="${/[A-D]/.test(k) ? '#d64545' : '#3a7bd5'}"/><text x="${kx + 8}" y="${ky + 12}" font-size="10" fill="#fff" text-anchor="middle">${esc(k)}</text>`;
+    }).join('') + `<rect x="${x - 26}" y="${y + 44}" width="52" height="10" fill="#c7a548"/>`;
+  }
+  if (t === 'soil') return `<rect x="${x - 30}" y="${y - 30}" width="60" height="20" rx="3" fill="#2a8f4a"/>
+    <path d="M${x - 22} ${y - 10} v36 l6 8 l6 -8 v-36 z M${x + 10} ${y - 10} v36 l6 8 l6 -8 v-36 z" fill="#c9a14a" stroke="#8b6d2b"/>`;
+  if (t === 'pir') return `<rect x="${x - 30}" y="${y - 26}" width="60" height="52" rx="3" fill="#2a8f4a"/><circle cx="${x}" cy="${y}" r="22" fill="#f4f4f0" stroke="#c9c9c0" stroke-width="2"/>
+    <path d="M${x - 22} ${y} h44 M${x} ${y - 22} v44 M${x - 15} ${y - 15} l30 30 M${x + 15} ${y - 15} l-30 30" stroke="#d8d8cf" stroke-width="1.5"/>`;
+  if (t === 'ir') return `<rect x="${x - 50}" y="${y - 10}" width="34" height="22" rx="3" fill="#2a8f4a"/><path d="M${x - 42} ${y - 10} v-10 a9 9 0 0 1 18 0 v10 z" fill="#222"/>
+    <rect x="${x - 4}" y="${y - 32}" width="40" height="66" rx="8" fill="#2b2b2b"/>
+    ${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => `<circle cx="${x + 6 + (i % 3) * 10}" cy="${y - 18 + Math.floor(i / 3) * 12}" r="3.5" fill="#d0d0d0"/>`).join('')}<circle cx="${x + 16}" cy="${y + 22}" r="6" fill="#e04848"/>`;
+  if (t === 'joystick') return `<rect x="${x - 30}" y="${y - 30}" width="60" height="60" rx="4" fill="#1f1f1f"/><circle cx="${x}" cy="${y}" r="22" fill="#3a3a3a"/><circle cx="${x}" cy="${y}" r="13" fill="#5a5a5a" stroke="#777"/>`;
+  return '';
+}
+
+function renderDiagram(p) {
+  const { comps, wires, usesRail, compBottom } = buildWiring(p);
+  const sig = wires.filter(w => w.to !== '+' && w.to !== '-');
+  sig.forEach(w => { w.p = pinPos(w.to, 0); });
+  const top = sig.filter(w => w.p.side === 'top').sort((a, b) => a.endY - b.endY);      // [0] = 가장 바깥
+  const bot = sig.filter(w => w.p.side === 'bottom').sort((a, b) => a.endY - b.endY);   // [0] = 가장 안쪽
+  const by = Math.max(46, 34 + top.length * 11);
+
+  // 세로 통로: 아래쪽 선(왼쪽) → 위쪽 선(오른쪽)
+  const vOrder = [...bot, ...top.slice().reverse()];
+  const n = vOrder.length;
+  const step = n > 1 ? Math.min(13, 90 / (n - 1)) : 0;
+  vOrder.forEach((w, j) => { w.lx = 500 + j * step + (n === 1 ? 40 : 0); });
+
+  top.forEach((w, k) => { w.ly = by - 14 - (top.length - 1 - k) * 11; });
+  bot.forEach((w, k) => { w.ly = by + BH + 14 + k * 11; });
+  const railY0 = by + BH + 14 + bot.length * 11;
+  const H = Math.max(compBottom + 6, railY0 + (usesRail ? 2 * 11 : 0) + 22);
+
+  const used = new Set(sig.map(w => w.to));
+  if (usesRail) { used.add('5V'); used.add('GND'); }
+
+  let s = `<svg viewBox="0 0 1020 ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(p.title)} 회로 연결도" font-family="IBM Plex Sans KR, Malgun Gothic, sans-serif">
+  <defs><linearGradient id="rgbgrad" x1="0" x2="1"><stop offset="0" stop-color="#ff5a5a"/><stop offset=".5" stop-color="#5ad06a"/><stop offset="1" stop-color="#5a8cff"/></linearGradient></defs>
+  <rect width="1020" height="${H}" fill="#eef2ec"/>`;
+
+  // 브레드보드 전원줄
+  if (usesRail) {
+    s += `<rect x="600" y="8" width="44" height="${H - 16}" rx="6" fill="#fbfbf7" stroke="#d3d3c8"/>
+      <line x1="605" y1="30" x2="605" y2="${H - 14}" stroke="#d93636" stroke-width="2"/><line x1="639" y1="30" x2="639" y2="${H - 14}" stroke="#2f6fe0" stroke-width="2"/>
+      <text x="${RAILP}" y="26" font-size="16" font-weight="700" fill="#d93636" text-anchor="middle">+</text><text x="${RAILN}" y="26" font-size="16" font-weight="700" fill="#2f6fe0" text-anchor="middle">−</text>`;
+    for (let yy = 40; yy < H - 16; yy += 13) s += `<rect x="${RAILP - 2}" y="${yy}" width="4" height="4" fill="#cfcfc4"/><rect x="${RAILN - 2}" y="${yy}" width="4" height="4" fill="#cfcfc4"/>`;
+  }
+
+  // 아두이노 보드
+  s += `<rect x="${BX}" y="${by}" width="${BW}" height="${BH}" rx="14" fill="#16708f" stroke="#0e5068" stroke-width="2"/>
+    <rect x="${BX - 14}" y="${by + 46}" width="74" height="58" rx="3" fill="#c9ced3" stroke="#8b949b"/><text x="${BX + 23}" y="${by + 80}" font-size="11" fill="#555" text-anchor="middle">USB</text>
+    <rect x="${BX - 10}" y="${by + 206}" width="64" height="52" rx="3" fill="#1e1e1e"/>
+    <text x="${BX + 70}" y="${by + 172}" font-size="36" font-weight="700" fill="#fff" opacity=".9">UNO</text>
+    <rect x="${BX + 200}" y="${by + 130}" width="190" height="44" rx="3" fill="#222"/><text x="${BX + 295}" y="${by + 157}" font-size="12" fill="#bbb" text-anchor="middle">ATmega328P</text>
+    <text x="${BX + 300}" y="${by + 86}" font-size="11" font-weight="700" fill="#fff" opacity=".75" text-anchor="middle">DIGITAL (PWM ~)</text>
+    <text x="${BX + 196}" y="${by + BH - 84}" font-size="11" font-weight="700" fill="#fff" opacity=".75" text-anchor="middle">POWER</text>
+    <text x="${BX + 324}" y="${by + BH - 84}" font-size="11" font-weight="700" fill="#fff" opacity=".75" text-anchor="middle">ANALOG IN</text>`;
+  // 헤더
+  const header = (x0, count, y) => `<rect x="${x0 - 9}" y="${y - 9}" width="${(count - 1) * 16 + 18}" height="18" rx="2" fill="#1b1b1b"/>`;
+  s += header(BX + 120, 10, by + 16) + header(BX + 290, 8, by + 16) + header(BX + 140, 8, by + BH - 16) + header(BX + 284, 6, by + BH - 16);
+  TOP_PINS.forEach((nm, i) => {
+    const q = pinPos(nm, by), on = used.has(nm) || (nm === 'GND_T' && false);
+    s += `<rect x="${q.x - 3}" y="${q.y - 3}" width="6" height="6" fill="#555"/>`;
+    s += `<text transform="translate(${q.x + 3.5} ${by + 30}) rotate(-90)" font-size="10" fill="${on ? '#ffd23f' : '#fff'}" font-weight="${on ? 700 : 400}" text-anchor="end">${TOP_LABEL[i]}</text>`;
+  });
+  BOT_PINS.forEach((nm, i) => {
+    const q = pinPos(nm, by), on = used.has(nm);
+    s += `<rect x="${q.x - 3}" y="${q.y - 3}" width="6" height="6" fill="#555"/>`;
+    if (BOT_LABEL[i]) s += `<text transform="translate(${q.x + 3.5} ${by + BH - 30}) rotate(-90)" font-size="10" fill="${on ? '#ffd23f' : '#fff'}" font-weight="${on ? 700 : 400}" text-anchor="start">${BOT_LABEL[i]}</text>`;
+  });
+
+  // 부품 상자
+  comps.forEach(c => {
+    s += `<rect x="${CX}" y="${c.y}" width="${CW}" height="${c.h}" rx="10" fill="#ffffff" stroke="#c6d0c7"/>
+      <text x="${CX + 14}" y="${c.y + 23}" font-size="14" font-weight="700" fill="#1a2620">${esc(c.name)}<tspan font-size="11" font-weight="400" fill="#6a7a70">${c.sub ? '  ' + esc(c.sub) : ''}</tspan></text>`;
+    s += iconSVG(c, CX + 242, c.y + Math.max(c.h / 2 + 8, 62));
+    c.pins.forEach((pin, i) => {
+      const yy = c.pinY[i], to = pin[1];
+      s += `<text x="${CX + 14}" y="${yy + 4}" font-size="12" fill="${to ? '#1a2620' : '#9aa59e'}">${esc(pin[0])}<tspan font-weight="700" fill="${to ? '#0b7a55' : '#9aa59e'}">  → ${to ? esc(shortTarget(to)) : '연결 안 함'}</tspan></text>`;
+    });
+  });
+
+  // 선
+  const line = (pts, col) => {
+    const d = 'M' + pts.map(q => q.join(' ')).join(' L');
+    return `<path d="${d}" fill="none" stroke="rgba(0,0,0,.28)" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${col}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  };
+  const dot = (x, y, col) => `<circle cx="${x}" cy="${y}" r="4.5" fill="${col}" stroke="#fff" stroke-width="1.5"/>`;
+  let wireSvg = '', overlay = '';
+
+  if (usesRail) {
+    const g = pinPos('GND', by), v = pinPos('5V', by);
+    const gy = railY0, vy = railY0 + 11;
+    wireSvg += line([[v.x, v.y], [v.x, vy], [RAILP, vy]], RED[0]) + dot(v.x, v.y, RED[0]) + dot(RAILP, vy, RED[0]);
+    wireSvg += line([[g.x, g.y], [g.x, gy], [RAILN, gy]], BLACK[0]) + dot(g.x, g.y, BLACK[0]) + dot(RAILN, gy, BLACK[0]);
+  }
+  wires.filter(w => w.to === '+' || w.to === '-').forEach(w => {
+    const rx = w.to === '+' ? RAILP : RAILN;
+    wireSvg += line([[CX, w.endY], [rx, w.endY]], w.color[0]) + dot(CX, w.endY, w.color[0]) + dot(rx, w.endY, w.color[0]);
+  });
+  sig.forEach(w => {
+    const q = pinPos(w.to, by);
+    const pts = [[q.x, q.y], [q.x, w.ly], [w.lx, w.ly], [w.lx, w.endY], [CX, w.endY]];
+    wireSvg += line(pts, w.color[0]) + dot(q.x, q.y, w.color[0]) + dot(CX, w.endY, w.color[0]);
+    if (w.r) overlay += resistorSVG((644 + CX) / 2, w.endY, w.r);
+  });
+  // 사용 핀 표시
+  used.forEach(nm => { const q = pinPos(nm, by); if (q) s += `<circle cx="${q.x}" cy="${q.y}" r="8" fill="none" stroke="#ffd23f" stroke-width="2.5"/>`; });
+
+  s += wireSvg + overlay + '</svg>';
+  return { svg: s, wires, usesRail };
+}
+
+/* ───────────── 코드 색칠 ───────────── */
+const KW = /^(void|int|long|float|bool|const|char|byte|unsigned|uint8_t|if|else|for|while|return|switch|case|break|true|false|String)$/;
+const FN = /^(setup|loop|pinMode|digitalWrite|digitalRead|analogWrite|analogRead|delay|delayMicroseconds|tone|noTone|pulseIn|millis|map|constrain|min|max|random|randomSeed|isnan)$/;
+function highlight(code) {
+  const re = /(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')|(#\w+[^\n]*)|\b(0x[0-9A-Fa-f]+|\d+(?:\.\d+)?)\b|\b([A-Za-z_]\w*)\b/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(code))) {
+    out += esc(code.slice(last, m.index));
+    const [tok] = m;
+    if (m[1]) out += `<span class="tk-c">${esc(tok)}</span>`;
+    else if (m[2]) out += `<span class="tk-s">${esc(tok)}</span>`;
+    else if (m[3]) out += `<span class="tk-p">${esc(tok)}</span>`;
+    else if (m[4]) out += `<span class="tk-n">${esc(tok)}</span>`;
+    else if (KW.test(tok)) out += `<span class="tk-k">${tok}</span>`;
+    else if (FN.test(tok) || /^(Serial|lcd|dht|IrReceiver|keypad|lid|lock|turret)$/.test(tok)) out += `<span class="tk-f">${tok}</span>`;
+    else out += esc(tok);
+    last = re.lastIndex;
+  }
+  return out + esc(code.slice(last));
+}
+
+/* ───────────── 저장 (이 브라우저에만) ───────────── */
+function load(key, fb) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fb; } catch (e) { return fb; } }
+function save(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
+
+/* ───────────── 화면 ───────────── */
+const view = document.getElementById('view');
+const tablist = document.getElementById('tablist');
+const TABS = [{ id: 'guide', label: '시작하기', num: '' }, ...PROJECTS.map((p, i) => ({ id: p.id, label: p.title, num: String(i + 1).padStart(2, '0') }))];
+
+tablist.innerHTML = TABS.map(t => `<button class="tab" role="tab" id="tab-${t.id}" data-id="${t.id}" aria-selected="false">${t.num ? `<span class="num">${t.num}</span>` : ''}${esc(t.label)}</button>`).join('');
+tablist.addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) go(b.dataset.id); });
+
+function go(id, noScroll) {
+  if (!TABS.some(t => t.id === id)) id = 'guide';
+  tablist.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.id === id ? 'true' : 'false'));
+  const btn = document.getElementById('tab-' + id);
+  if (btn) btn.scrollIntoView({ block: 'nearest', inline: 'center' });
+  view.innerHTML = id === 'guide' ? guideHTML() : projectHTML(PROJECTS.find(p => p.id === id));
+  if (id === 'guide') bindGuide(); else bindProject(PROJECTS.find(p => p.id === id));
+  save('am-tab', id);
+  try { history.replaceState(null, '', '#' + id); } catch (e) {}
+  if (!noScroll) window.scrollTo({ top: 0 });
+}
+
+function stars(n) { return '★'.repeat(n) + '☆'.repeat(3 - n); }
+
+function projectHTML(p) {
+  const idx = PROJECTS.indexOf(p) + 1;
+  const d = renderDiagram(p);
+  const rows = [];
+  if (d.usesRail) {
+    rows.push({ what: '아두이노 <b>5V</b>', to: '브레드보드 + 줄', col: RED });
+    rows.push({ what: '아두이노 <b>GND</b>', to: '브레드보드 − 줄', col: BLACK });
+  }
+  // 전원 → 신호 순서로 꽂기
+  const ordered = [...d.wires.filter(w => w.to === '+' || w.to === '-'), ...d.wires.filter(w => w.to !== '+' && w.to !== '-')];
+  ordered.forEach(w => rows.push({ what: `${esc(w.comp.name)} <b>${esc(w.label)}</b>`, to: targetText(w.to), col: w.color, r: w.r }));
+  const allParts = ['아두이노 UNO + USB 케이블', '브레드보드', '점퍼선 (수-수 / 암-수)'];
+  p.comps.forEach(c => allParts.push(c.name + (c.sub ? ` (${c.sub})` : '')));
+  const resCount = {};
+  d.wires.forEach(w => { if (w.r) resCount[w.r] = (resCount[w.r] || 0) + 1; });
+  if (p.comps.some(c => c.type === 'cds')) resCount['10kΩ'] = (resCount['10kΩ'] || 0) + 1;
+  Object.entries(resCount).forEach(([v, n]) => allParts.push(`저항 ${v} × ${n}개`));
+
+  return `
+  <section class="hero">
+    <div class="eyebrow">예시 ${String(idx).padStart(2, '0')} / 10</div>
+    <h2>${esc(p.title)}</h2>
+    <p class="pitch">${esc(p.pitch)}</p>
+    <div class="meta">
+      <span class="pill lv">난이도 <b>${stars(p.level)}</b></span>
+      <span class="pill">예상 시간 <b>${p.time}</b></span>
+      <span class="pill">입력 <b>${p.in.join(', ')}</b></span>
+      <span class="pill">출력 <b>${p.out.join(', ')}</b></span>
+    </div>
+  </section>
+
+  <div class="two">
+    <div class="panel"><h3>준비물</h3><ul class="parts">${allParts.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+    <div class="panel"><h3>어떻게 움직일까?</h3><ol class="steps">${p.how.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>
+  </div>
+
+  <section class="block">
+    <div class="eyebrow">STEP 1</div>
+    <h2>회로 연결도</h2>
+    <p class="muted">아두이노의 노란 동그라미 핀만 사용해요. 화면이 좁으면 그림을 옆으로 밀어서 보세요.</p>
+    <div class="diagram-box">${d.svg}</div>
+    <div class="legend">
+      <span><i class="sw" style="background:#d93636"></i>+ 전원 (5V)</span>
+      <span><i class="sw" style="background:#2a2a2a"></i>− 전원 (GND)</span>
+      <span><i class="sw" style="background:#f2b705"></i><i class="sw" style="background:#1f6fe0"></i>신호선 (색은 구분용)</span>
+      <span><i class="sw" style="background:#e8d2a2;height:10px;width:22px;border:1px solid #9c8156"></i>저항을 거쳐 연결</span>
+    </div>
+    ${p.note ? `<div class="callout"><b>참고 · </b>${esc(p.note)}</div>` : ''}
+  </section>
+
+  <section class="block">
+    <div class="eyebrow">STEP 2</div>
+    <div class="check-head">
+      <h2>하나씩 꽂으며 체크하기</h2>
+      <span><span class="progress" id="prog"></span> <button class="btn" id="resetChk" type="button">체크 지우기</button></span>
+    </div>
+    <div class="callout warn"><b>꽂기 전에!</b> USB 케이블을 뽑은 상태에서 연결하고, 다 꽂은 뒤 한 번 더 확인하고 USB를 꽂아요.</div>
+    <div class="table-scroll">
+      <table class="wires">
+        <thead><tr><th>완료</th><th>#</th><th>부품의 어디를</th><th>어디에 꽂을까</th><th>선 색 (추천)</th></tr></thead>
+        <tbody>${rows.map((r, i) => `<tr data-i="${i}">
+          <td><input type="checkbox" id="chk-${p.id}-${i}" aria-label="${i + 1}번 연결 완료"></td>
+          <td class="n">${i + 1}</td>
+          <td class="what">${r.what}</td>
+          <td><span class="to">${esc(r.to)}</span>${r.r ? `<span class="res">${esc(r.r)} 저항을 거쳐서</span>` : ''}</td>
+          <td><span class="wirecell"><i class="sw" style="background:${r.col[0]}"></i>${r.col[1]}</span></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="eyebrow">STEP 3</div>
+    <h2>코드 업로드</h2>
+    ${p.libs.length ? `<div class="panel libs"><h3>먼저 설치할 라이브러리</h3>${p.libs.map(l => `<div class="lib"><code>${esc(l[0])}</code> <span class="muted">${esc(l[1])}</span></div>`).join('')}<p class="muted" style="font-size:14px">아두이노 IDE 왼쪽의 책 모양(라이브러리 매니저) 아이콘 → 이름 검색 → 설치</p></div>` : `<p class="muted">추가로 설치할 라이브러리가 없어요. 바로 복사해서 붙여넣으면 돼요.</p>`}
+    <div class="code-wrap">
+      <div class="code-bar"><span>${esc(p.id)}.ino</span><button class="btn" id="copyBtn" type="button">코드 복사</button></div>
+      <pre class="code" id="codeBox">${highlight(p.code)}</pre>
+    </div>
+  </section>
+
+  <div class="two">
+    <div class="panel"><div class="eyebrow">STEP 4</div><h3>작동 확인하기</h3><ol class="steps">${p.try.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>
+    <div class="panel"><div class="eyebrow">STEP 5</div><h3>내 것으로 바꿔 보기</h3><ul class="ideas">${p.ext.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+  </div>
+
+  <div class="meta" style="justify-content:space-between">
+    ${idx > 1 ? `<button class="btn" type="button" data-go="${PROJECTS[idx - 2].id}">← ${esc(PROJECTS[idx - 2].title)}</button>` : `<button class="btn" type="button" data-go="guide">← 시작하기</button>`}
+    ${idx < PROJECTS.length ? `<button class="btn primary" type="button" data-go="${PROJECTS[idx].id}">${esc(PROJECTS[idx].title)} →</button>` : ''}
+  </div>`;
+}
+
+function bindProject(p) {
+  const key = 'am-chk-' + p.id;
+  let st = load(key, {});
+  const boxes = [...view.querySelectorAll('table.wires input')];
+  const prog = document.getElementById('prog');
+  const refresh = () => {
+    let done = 0;
+    boxes.forEach((b, i) => { b.checked = !!st[i]; b.closest('tr').classList.toggle('done', b.checked); if (b.checked) done++; });
+    prog.textContent = `${done} / ${boxes.length} 연결 완료`;
+  };
+  boxes.forEach((b, i) => b.addEventListener('change', () => { st[i] = b.checked; save(key, st); refresh(); }));
+  document.getElementById('resetChk').addEventListener('click', () => { st = {}; save(key, st); refresh(); });
+  refresh();
+
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.addEventListener('click', () => {
+    const ok = () => { copyBtn.textContent = '복사됨 ✓'; copyBtn.classList.add('ok'); setTimeout(() => { copyBtn.textContent = '코드 복사'; copyBtn.classList.remove('ok'); }, 1800); };
+    const fallback = () => {
+      const r = document.createRange(); r.selectNodeContents(document.getElementById('codeBox'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      copyBtn.textContent = 'Ctrl+C 로 복사하세요';
+    };
+    try { navigator.clipboard.writeText(p.code).then(ok, fallback); } catch (e) { fallback(); }
+  });
+  view.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+}
+
+/* ───────────── 시작하기 탭 ───────────── */
+const INPUTS = [
+  ['거리', '초음파 센서', '물체가 가까이 오면'], ['움직임', 'PIR 센서', '사람이 지나가면'], ['빛', '조도 센서', '주변이 어두워지면'],
+  ['온습도', 'DHT11', '방이 너무 덥거나 습하면'], ['흙 수분', '토양 수분 센서', '화분 흙이 마르면'], ['버튼', '택트 스위치', '버튼을 누르면'],
+  ['가변저항', '돌리는 손잡이', '손잡이를 돌리는 만큼'], ['조이스틱', '조이스틱 모듈', '조이스틱을 기울이는 방향으로'],
+  ['키패드', '4×4 키패드', '비밀번호를 맞히면'], ['리모컨', '적외선 리모컨', '리모컨 버튼을 누르면']
+];
+const OUTPUTS = [
+  ['LED', '불빛이 켜지는'], ['RGB LED', '불빛 색깔이 바뀌는'], ['부저', '소리·멜로디로 알려 주는'],
+  ['서보모터', '모터가 돌아 문·팔·깃발이 움직이는'], ['LCD', '화면에 글자로 보여 주는']
+];
+const EXAMPLES = {
+  '거리|LED': '사람이 다가오면 불이 켜지는 현관 센서등', '거리|부저': '너무 가까이 앉으면 경고하는 “바른 자세” 알리미',
+  '거리|서보모터': '손을 대면 열리는 자동문 · 비접촉 쓰레기통', '거리|LCD': '키 재는 기계 (천장에 센서 달기)',
+  '거리|RGB LED': '거리에 따라 색이 변하는 무지개 자', '움직임|LED': '밤에 화장실 가는 길을 비추는 복도 센서등',
+  '움직임|부저': '내 방 침입자 경보기', '움직임|서보모터': '사람이 오면 손을 흔드는 인사 로봇',
+  '움직임|LCD': '오늘 지나간 사람 수를 세는 카운터', '움직임|RGB LED': '사람이 오면 색이 바뀌는 환영 조명',
+  '빛|LED': '어두워지면 자동으로 켜지는 가로등', '빛|서보모터': '해를 따라 도는 태양광 패널 모형',
+  '빛|부저': '아침 햇빛이 들면 울리는 햇살 알람', '빛|LCD': '공부하기 좋은 밝기인지 알려 주는 조도계',
+  '빛|RGB LED': '밝기에 따라 색이 변하는 감성 무드등', '온습도|LCD': '교실 날씨 관측소', '온습도|부저': '28℃가 넘으면 울리는 폭염 경보기',
+  '온습도|서보모터': '더우면 창문이 열리는 스마트 온실', '온습도|RGB LED': '온도를 색으로 보여 주는 온도 램프',
+  '온습도|LED': '습도가 높으면 켜지는 “환기하세요” 알림등', '흙 수분|RGB LED': '물 달라고 말하는 화분',
+  '흙 수분|부저': '물 줄 때를 노래로 알려 주는 화분', '흙 수분|서보모터': '흙이 마르면 깃발을 드는 화분',
+  '흙 수분|LCD': '수분 %를 보여 주는 식물 건강 측정기', '흙 수분|LED': '목마르면 빨간 불이 켜지는 화분',
+  '버튼|부저': '버튼 피아노 · 퀴즈 정답 버저', '버튼|LED': '반응 속도 게임 · 수업용 신호등', '버튼|LCD': '버튼으로 세는 줄넘기 카운터',
+  '버튼|서보모터': '버튼을 누르면 사탕이 나오는 자판기', '버튼|RGB LED': '누를 때마다 색이 바뀌는 무드등',
+  '가변저항|서보모터': '손잡이로 움직이는 로봇 팔', '가변저항|LED': '밝기 조절 스탠드', '가변저항|부저': '테레민 같은 소리 장난감',
+  '가변저항|RGB LED': '손잡이로 고르는 색상 팔레트 조명', '가변저항|LCD': '돌려서 맞추는 타이머 설정기',
+  '조이스틱|서보모터': '조이스틱 포탑 · 인형 뽑기 팔', '조이스틱|LED': 'LED 위치를 옮기는 미니 게임', '조이스틱|부저': '방향마다 다른 소리가 나는 효과음 패드',
+  '조이스틱|LCD': 'LCD 위에서 움직이는 캐릭터 게임', '조이스틱|RGB LED': '기울이는 방향으로 색이 바뀌는 조명',
+  '키패드|서보모터': '비밀번호 금고 · 도어락', '키패드|LCD': '사칙연산 계산기 · 퀴즈 머신', '키패드|부저': '숫자 키로 연주하는 전화기 피아노',
+  '키패드|LED': '정답을 맞히면 불이 켜지는 퀴즈 박스', '키패드|RGB LED': '번호마다 색이 다른 색상 선택기',
+  '리모컨|RGB LED': '리모컨 무드등', '리모컨|서보모터': '리모컨으로 여는 커튼·창문', '리모컨|부저': '리모컨 버튼 음악 플레이어',
+  '리모컨|LED': '멀리서 끄는 스마트 스위치', '리모컨|LCD': '리모컨 숫자를 화면에 보여 주는 번호표 기계'
+};
+let mixIn = '거리', mixOut = '서보모터';
+
+function guideHTML() {
+  const cards = PROJECTS.map((p, i) => `<button class="card" type="button" data-go="${p.id}"><span class="n">${String(i + 1).padStart(2, '0')} · ${stars(p.level)}</span><span class="t">${esc(p.title)}</span><span class="s">${esc(p.comps.map(c => c.name).join(' · '))}</span></button>`).join('');
+  return `
+  <section class="hero">
+    <div class="eyebrow">마지막 4시간 · 메이커 프로젝트</div>
+    <h2>내가 만들고 싶은 걸 만들어 보자</h2>
+    <p class="pitch">아래 10가지 예시는 출발점이에요. 마음에 드는 예시를 그대로 만들어 보고, 부품을 더하거나 바꿔서 나만의 발명품으로 완성해요.</p>
+  </section>
+
+  <section class="block">
+    <h2>4시간 진행 순서</h2>
+    <div class="timeline">
+      <div class="slot"><span class="hour">1교시</span><h3>고르고 계획하기</h3><p>아이디어 조합기와 예시를 보고 만들 것을 정해요. 필요한 부품을 키트에서 챙기고, 무엇을 감지해서 어떻게 반응할지 한 문장으로 적어요.</p></div>
+      <div class="slot"><span class="hour">2교시</span><h3>꽂고 올리기</h3><p>예시 탭의 연결도를 보며 체크리스트를 하나씩 체크해요. 코드를 복사해서 업로드하고 작동을 확인해요.</p></div>
+      <div class="slot"><span class="hour">3교시</span><h3>내 것으로 바꾸기</h3><p>숫자(거리·각도·소리)를 바꾸고, 다른 예시의 부품 회로와 코드를 가져와 기능을 더해요. 상자나 종이로 겉모습도 꾸며요.</p></div>
+      <div class="slot"><span class="hour">4교시</span><h3>마무리와 발표</h3><p>작품 이름, 어떤 문제를 해결하는지, 어려웠던 점을 1분 동안 소개하고 친구 작품을 체험해 봐요.</p></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>아이디어 조합기</h2>
+    <p class="muted">무엇을 <b>감지</b>해서(입력) 어떻게 <b>반응</b>할지(출력) 하나씩 골라 보세요.</p>
+    <div class="mixer">
+      <div class="mix-row"><span class="lab">① 무엇을 감지할까? (입력)</span><div class="chips" id="mixIn">${INPUTS.map(x => `<button class="chip" type="button" data-v="${x[0]}" aria-pressed="false">${x[0]}</button>`).join('')}</div></div>
+      <div class="mix-row"><span class="lab">② 어떻게 반응할까? (출력)</span><div class="chips" id="mixOut">${OUTPUTS.map(x => `<button class="chip" type="button" data-v="${x[0]}" aria-pressed="false">${x[0]}</button>`).join('')}</div></div>
+      <div class="mix-out" id="mixResult"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>10가지 예시</h2>
+    <div class="cards">${cards}</div>
+  </section>
+
+  <section class="block">
+    <h2>꼭 지킬 것</h2>
+    <div class="rules">
+      <div class="panel"><h3>안전하게 꽂기</h3><ul class="ideas">
+        <li>선을 꽂거나 뺄 때는 <b>USB를 뽑고</b> 해요.</li>
+        <li>5V와 GND를 직접 이으면 합선! 보드가 뜨거워지면 바로 USB를 뽑아요.</li>
+        <li>LED는 <b>긴 다리가 +</b>, 그리고 꼭 220Ω 저항을 거쳐요.</li>
+      </ul></div>
+      <div class="panel"><h3>브레드보드 전원 줄</h3><ul class="ideas">
+        <li>빨간 선 옆 <b>+ 줄</b>은 5V, 파란 선 옆 <b>− 줄</b>은 GND로 써요.</li>
+        <li>여러 부품이 5V·GND를 같이 쓸 때 이 줄에 나눠 꽂아요.</li>
+        <li>브레드보드 가운데 세로 5칸은 서로 연결되어 있어요.</li>
+      </ul></div>
+      <div class="panel"><h3>업로드하기</h3><ul class="ideas">
+        <li>툴 → 보드: <b>Arduino Uno</b>, 포트: <b>COM 숫자</b> 선택</li>
+        <li>라이브러리는 IDE 왼쪽 책 아이콘에서 검색해서 설치</li>
+        <li>센서 값은 시리얼 모니터(<b>9600</b>)에서 확인</li>
+      </ul></div>
+      <div class="panel"><h3>안 될 때 확인할 것</h3><ul class="ideas">
+        <li>업로드 실패 → 포트 다시 선택, USB 다시 꽂기</li>
+        <li>LCD에 글자가 없음 → 뒤 파란 나사 돌리기, 코드의 <code>0x27</code>을 <code>0x3F</code>로</li>
+        <li>센서 값이 0이나 1023만 나옴 → 선이 빠졌는지, 핀 번호가 코드와 같은지 확인</li>
+        <li>서보가 덜덜 떨림 → − 줄 연결 확인</li>
+      </ul></div>
+    </div>
+    <div class="callout"><b>두 예시를 합칠 때 · </b>같은 핀 번호를 두 부품이 쓰면 안 돼요. 겹치면 빈 핀으로 옮기고 코드의 핀 번호도 같이 바꿔요. 리모컨(IRremote)을 쓸 때는 부저를 3번·11번 핀에 꽂지 마세요.</div>
+  </section>
+
+  <footer>키트 구성은 판매 시기에 따라 조금 다를 수 있어요. 없는 부품은 비슷한 부품으로 바꾸거나 선생님께 물어보세요. 체크 표시는 이 브라우저에만 저장돼요.</footer>`;
+}
+
+function bindGuide() {
+  const draw = () => {
+    document.querySelectorAll('#mixIn .chip').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === mixIn));
+    document.querySelectorAll('#mixOut .chip').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === mixOut));
+    const i = INPUTS.find(x => x[0] === mixIn), o = OUTPUTS.find(x => x[0] === mixOut);
+    const ex = EXAMPLES[mixIn + '|' + mixOut];
+    const inRef = PROJECTS.filter(p => p.in.includes(mixIn)), outRef = PROJECTS.filter(p => p.out.includes(mixOut));
+    const both = PROJECTS.filter(p => p.in.includes(mixIn) && p.out.includes(mixOut));
+    const refBtns = list => list.map(p => `<button class="linkbtn" type="button" data-go="${p.id}">${esc(p.title)}</button>`).join('');
+    document.getElementById('mixResult').innerHTML = `
+      <span class="eyebrow">아이디어</span>
+      <div class="idea">“${i[2]} ${o[1]} 장치”</div>
+      ${ex ? `<p>예를 들면 → <b>${esc(ex)}</b></p>` : ''}
+      ${both.length ? `<p class="muted" style="font-size:14px">이 조합이 그대로 들어 있는 예시</p><div class="refs">${refBtns(both)}</div>` : `
+      <p class="muted" style="font-size:14px">입력 회로와 코드는 여기서 가져오고</p><div class="refs">${refBtns(inRef)}</div>
+      <p class="muted" style="font-size:14px">출력 회로와 코드는 여기서 가져와 합쳐요</p><div class="refs">${refBtns(outRef)}</div>`}`;
+    document.querySelectorAll('#mixResult [data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+  };
+  document.getElementById('mixIn').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { mixIn = b.dataset.v; draw(); } });
+  document.getElementById('mixOut').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { mixOut = b.dataset.v; draw(); } });
+  draw();
+  view.querySelectorAll('.cards [data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+}
+
+const start = (location.hash || '').slice(1) || load('am-tab', 'guide');
+go(start, true);
+</script>
+
+</body>
+</html>
